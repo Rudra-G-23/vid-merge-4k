@@ -3,7 +3,7 @@ let activeVideoId = null;
 let masterRatio = 16/9; // Default
 
 // DOM Elements
-const videoUpload = document.getElementById('videoUpload');
+const btnAddVideos = document.getElementById('btnAddVideos');
 const videoListEl = document.getElementById('videoList');
 const videoCountEl = document.getElementById('videoCount');
 const loadingOverlay = document.getElementById('loadingOverlay');
@@ -37,7 +37,7 @@ const progressStatus = document.getElementById('progressStatus');
 const progressPercent = document.getElementById('progressPercent');
 
 // Events
-videoUpload.addEventListener('change', handleUpload);
+btnAddVideos.addEventListener('click', handleAddVideos);
 exportQuality.addEventListener('input', (e) => crfValue.textContent = e.target.value);
 btnPickFolder.addEventListener('click', handlePickFolder);
 btnExport.addEventListener('click', handleExport);
@@ -93,63 +93,51 @@ function getValidRotation(degAdd) {
     return rot;
 }
 
-async function handleUpload(e) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+async function handleAddVideos() {
     loadingOverlay.style.display = 'flex';
+    loadingOverlay.querySelector('p').textContent = "Waiting for file selection...";
 
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const formData = new FormData();
-        formData.append('file', file);
+    try {
+        const res = await fetch('/pick-files');
+        const data = await res.json();
+        
+        if (data.error) {
+            console.error(data.error);
+            alert(`Error: ${data.error}`);
+        } else if (data.videos) {
+            data.videos.forEach(v => {
+                const videoObj = {
+                    id: 'v_' + Math.random().toString(36).substr(2, 9),
+                    filename: v.filename,
+                    width: v.width,
+                    height: v.height,
+                    duration: v.duration,
+                    url: v.url,
+                    thumbnail: v.thumbnail,
+                    path: v.path,
+                    rotate: 0,
+                    mirror: false,
+                    flip: false,
+                    fitFill: 'fit',
+                    ratio: 'Original'
+                };
 
-        try {
-            const res = await fetch('/upload', {
-                method: 'POST',
-                body: formData
+                videos.push(videoObj);
+
+                if (videos.length === 1) {
+                    masterRatio = videoObj.width / videoObj.height;
+                    previewContainer.style.aspectRatio = `${videoObj.width}/${videoObj.height}`;
+                }
             });
-            const data = await res.json();
-            
-            if (data.error) {
-                console.error(data.error);
-                alert(`Error uploading ${file.name}: ${data.error}`);
-                continue;
-            }
-
-            const videoObj = {
-                id: 'v_' + Math.random().toString(36).substr(2, 9),
-                filename: data.filename,
-                width: data.width,
-                height: data.height,
-                duration: data.duration,
-                url: data.url,
-                thumbnail: data.thumbnail,
-                rotate: 0,
-                mirror: false,
-                flip: false,
-                fitFill: 'fit',
-                ratio: 'Original'
-            };
-
-            videos.push(videoObj);
-
-            // If first video, set master ratio
-            if (videos.length === 1) {
-                masterRatio = videoObj.width / videoObj.height;
-                previewContainer.style.aspectRatio = `${videoObj.width}/${videoObj.height}`;
-            }
-
-        } catch (err) {
-            console.error("Upload failed", err);
         }
+    } catch (err) {
+        console.error("Selection failed", err);
+        alert("Failed to pick files.");
     }
 
     loadingOverlay.style.display = 'none';
-    videoUpload.value = ''; // Reset input
     renderVideoList();
     
-    // Auto select first if none selected
     if (videos.length > 0 && !activeVideoId) {
         selectVideo(videos[0].id);
     }

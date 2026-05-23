@@ -76,6 +76,7 @@ body::before {
 .right-panel {
     border-right: none;
     border-left: 1px solid var(--panel-border);
+    overflow-y: auto;
 }
 
 .main-content {

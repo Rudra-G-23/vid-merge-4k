@@ -105,6 +105,12 @@ async def get_video(filename: str):
         return FileResponse(file_path)
     return {"error": "File not found"}
 
+@app.get("/serve-video")
+async def serve_video(path: str):
+    if os.path.exists(path):
+        return FileResponse(path)
+    return {"error": "File not found"}
+
 @app.get("/thumbnail/{filename}")
 async def get_thumbnail(filename: str):
     file_path = THUMBNAIL_DIR / filename
@@ -112,6 +118,55 @@ async def get_thumbnail(filename: str):
         return FileResponse(file_path)
     # Return a default empty response or a placeholder
     return FileResponse(STATIC_DIR / "placeholder.jpg")
+
+@app.get("/pick-files")
+async def pick_files():
+    """Opens a native Windows file picker to select videos directly without slow HTTP uploads."""
+    def _pick():
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        file_paths = filedialog.askopenfilenames(
+            title="Select Videos",
+            filetypes=[("Video files", "*.mp4 *.mov *.mkv")]
+        )
+        root.destroy()
+        return list(file_paths)
+    
+    try:
+        import urllib.parse
+        loop = asyncio.get_event_loop()
+        file_paths = await loop.run_in_executor(None, _pick)
+        
+        results = []
+        for file_path in file_paths:
+            try:
+                info = get_video_info(file_path)
+                filename = os.path.basename(file_path)
+                
+                # Generate thumbnail
+                thumb_name = f"{filename}_{abs(hash(file_path))}.jpg"
+                thumb_path = THUMBNAIL_DIR / thumb_name
+                try:
+                    generate_thumbnail(file_path, str(thumb_path))
+                except Exception as e:
+                    print(f"Error thumbnail: {e}")
+                
+                results.append({
+                    "filename": filename,
+                    "width": info.get("width", 1920),
+                    "height": info.get("height", 1080),
+                    "duration": info.get("duration", 0.0),
+                    "url": f"/serve-video?path={urllib.parse.quote(file_path)}",
+                    "thumbnail": f"/thumbnail/{thumb_name}",
+                    "path": file_path
+                })
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}")
+                
+        return {"videos": results}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/pick-folder")
 async def pick_folder():
@@ -164,7 +219,8 @@ async def export_videos(request: Request, background_tasks: BackgroundTasks):
     # Process each video to gather full paths
     processed_videos = []
     for v in videos:
-        v["path"] = str(TEMP_DIR / v["filename"])
+        if "path" not in v or not os.path.exists(v["path"]):
+            v["path"] = str(TEMP_DIR / v["filename"])
         processed_videos.append(v)
         
     async def progress_callback(progress_data):

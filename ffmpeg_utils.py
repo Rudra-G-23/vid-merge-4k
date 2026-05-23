@@ -4,6 +4,7 @@ import os
 import re
 import static_ffmpeg
 
+# Automatically download and add ffmpeg/ffprobe to the PATH
 static_ffmpeg.add_paths()
 
 def get_video_info(file_path):
@@ -17,11 +18,13 @@ def get_video_info(file_path):
         width = int(video_stream['width'])
         height = int(video_stream['height'])
         duration = float(probe['format']['duration'])
+        has_audio = any(stream['codec_type'] == 'audio' for stream in probe['streams'])
         
         return {
             "width": width,
             "height": height,
-            "duration": duration
+            "duration": duration,
+            "has_audio": has_audio
         }
     except ffmpeg.Error as e:
         print(f"ffmpeg error: {e.stderr.decode('utf8')}")
@@ -83,7 +86,13 @@ async def export_video(videos, output_path, quality, resolution, master_ratio, f
             inputs.append(input_stream)
             
             v_stream = input_stream.video
-            a_stream = input_stream.audio
+            
+            # Create a dummy audio stream if the video has no audio
+            v_info = get_video_info(v["path"])
+            if v_info.get("has_audio"):
+                a_stream = input_stream.audio
+            else:
+                a_stream = ffmpeg.input('anullsrc', f='lavfi', t=v_info["duration"]).audio
             
             # Rotation
             rotate = v.get("rotate", 0)
@@ -151,10 +160,10 @@ async def export_video(videos, output_path, quality, resolution, master_ratio, f
         out_a = concat.node[1]
         
         # Output options
-        vcodec = 'libx265' if format == 'mp4' else 'prores'
+        vcodec = 'libx264' if format == 'mp4' else 'prores'
         # Check for GPU (naive fallback to CPU if nvenc fails is harder in pure python-ffmpeg, 
-        # so we'll stick to CPU libx265 for broader compatibility, or try nvenc)
-        # We will use libx265 as default HEVC encoder, it is universally available if ffmpeg has it.
+        # so we'll stick to CPU libx264 for broader compatibility, or try nvenc)
+        # We will use libx264 as default encoder because it is universally available, much faster than x265, and very reliable.
         # Quality: CRF (0-51), lower is better. Default 23.
         
         output_args = {
@@ -165,27 +174,37 @@ async def export_video(videos, output_path, quality, resolution, master_ratio, f
         }
         
         if format == 'mp4':
-            output_args['tag:v'] = 'hvc1' # Better compatibility for HEVC on Apple devices
+            output_args['pix_fmt'] = 'yuv420p' # Ensure compatibility
 
         # Since we want progress, we need to run it asynchronously and capture stderr
         cmd = ffmpeg.output(out_v, out_a, output_path, **output_args).overwrite_output().compile()
         
+        # Explicitly use the static_ffmpeg executable path to avoid WinError 2
+        ffmpeg_exe = static_ffmpeg.run.get_or_fetch_platform_executables_else_raise()[0]
+        cmd[0] = ffmpeg_exe
+        
+        import subprocess
         # Run process
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         )
         
         duration_total = sum([get_video_info(v["path"])["duration"] for v in videos])
         
+        stderr_lines = []
+        loop = asyncio.get_event_loop()
+        
         # Read stderr for progress
         while True:
-            line = await process.stderr.readline()
+            line = await loop.run_in_executor(None, process.stderr.readline)
             if not line:
                 break
             
             line_str = line.decode('utf8', errors='ignore')
+            stderr_lines.append(line_str)
             # Look for time=00:00:01.23
             time_match = re.search(r'time=(\d+):(\d+):(\d+\.\d+)', line_str)
             if time_match:
@@ -197,13 +216,16 @@ async def export_video(videos, output_path, quality, resolution, master_ratio, f
                 progress = min(100, int((current_time / duration_total) * 100)) if duration_total > 0 else 0
                 await progress_callback({"status": "processing", "progress": progress})
 
-        await process.wait()
+        await loop.run_in_executor(None, process.wait)
         
         if process.returncode == 0:
             await progress_callback({"status": "completed", "progress": 100})
         else:
-            await progress_callback({"status": "error", "message": "FFmpeg process failed"})
+            error_log = "".join(stderr_lines[-10:])
+            await progress_callback({"status": "error", "message": f"FFmpeg failed:\n{error_log}"})
             
     except Exception as e:
-        print(f"Export error: {e}")
-        await progress_callback({"status": "error", "message": str(e)})
+        import traceback
+        err_msg = traceback.format_exc()
+        print(f"Export error: {err_msg}")
+        await progress_callback({"status": "error", "message": f"{repr(e)}"})
