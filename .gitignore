@@ -13,3 +13,8 @@ wheels/
 temp_uploads/
 temp_thumbnails/
 
+# Video output and media files
+*.mp4
+*.mov
+*.mkv
+out.mp4
