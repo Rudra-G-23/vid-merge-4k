@@ -2,6 +2,9 @@ import ffmpeg
 import asyncio
 import os
 import re
+import static_ffmpeg
+
+static_ffmpeg.add_paths()
 
 def get_video_info(file_path):
     """Get video resolution and duration using ffprobe."""
@@ -90,6 +93,14 @@ async def export_video(videos, output_path, quality, resolution, master_ratio, f
                 v_stream = v_stream.filter('transpose', 1).filter('transpose', 1)
             elif rotate == -90 or rotate == 270:
                 v_stream = v_stream.filter('transpose', 2)
+
+            # Mirror and Flip
+            mirror = v.get("mirror", False)
+            flip = v.get("flip", False)
+            if mirror:
+                v_stream = v_stream.filter('hflip')
+            if flip:
+                v_stream = v_stream.filter('vflip')
 
             # Aspect Ratio & Fit/Fill
             fit_fill = v.get("fitFill", "fit")

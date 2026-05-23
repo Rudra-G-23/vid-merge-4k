@@ -1,14 +1,16 @@
 [project]
 name = "vid"
 version = "0.1.0"
-description = "Add your description here"
+description = "Webapp helps to merge the 4k Video."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.136.1",
     "ffmpeg-python>=0.2.0",
+    "imageio-ffmpeg>=0.6.0",
     "jinja2>=3.1.6",
     "python-multipart>=0.0.29",
+    "static-ffmpeg>=3.0",
     "uvicorn>=0.47.0",
     "websockets>=16.0",
 ]

@@ -51,12 +51,13 @@
             <div class="panel-section" id="clipSettingsPanel" style="display: none;">
                 <h3>Clip Settings</h3>
                 <div class="setting-group">
-                    <label>Rotation</label>
+                    <label>Orientation</label>
                     <div class="btn-group">
                         <button class="icon-btn" id="btnRotLeft" title="Rotate Left 90°">↶</button>
                         <button class="icon-btn" id="btnRotRight" title="Rotate Right 90°">↷</button>
-                        <button class="icon-btn" id="btnRot180" title="Rotate 180°">180°</button>
-                        <button class="icon-btn" id="btnRotReset" title="Reset Rotation">X</button>
+                        <button class="icon-btn" id="btnMirror" title="Mirror (Horizontal Flip)">Mirror</button>
+                        <button class="icon-btn" id="btnFlip" title="Flip (Vertical Flip)">Flip</button>
+                        <button class="icon-btn" id="btnRotReset" title="Reset Orientation">Reset</button>
                     </div>
                 </div>
                 
@@ -70,15 +71,34 @@
 
                 <div class="setting-group">
                     <label>Aspect Ratio</label>
-                    <select id="clipRatioSelect" class="custom-select">
-                        <option value="Original">Original</option>
-                        <option value="16:9">16:9</option>
-                        <option value="9:16">9:16</option>
-                        <option value="1:1">1:1</option>
-                        <option value="4:5">4:5</option>
-                        <option value="2:3">2:3</option>
-                        <option value="3:4">3:4</option>
-                    </select>
+                    <div class="ratio-group" id="clipRatioGroup">
+                        <button class="ratio-btn active" data-ratio="Original">
+                            <span class="ratio-icon">🔲</span>
+                            <span class="ratio-label">Original</span>
+                        </button>
+                        <button class="ratio-btn" data-ratio="9:16">
+                            <span class="ratio-icon">🎵</span>
+                            <span class="ratio-label">9:16</span>
+                        </button>
+                        <button class="ratio-btn" data-ratio="1:1">
+                            <span class="ratio-icon">📸</span>
+                            <span class="ratio-label">1:1</span>
+                        </button>
+                        <button class="ratio-btn" data-ratio="16:9">
+                            <span class="ratio-icon">▶️</span>
+                            <span class="ratio-label">16:9</span>
+                        </button>
+                        <button class="ratio-btn" data-ratio="4:5">
+                            <span class="ratio-icon">📸</span>
+                            <span class="ratio-label">4:5</span>
+                        </button>
+                        <button class="ratio-btn" data-ratio="2:3">
+                            <span class="ratio-label">2:3</span>
+                        </button>
+                        <button class="ratio-btn" data-ratio="3:4">
+                            <span class="ratio-label">3:4</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

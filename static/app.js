@@ -15,12 +15,13 @@ const previewContainer = document.querySelector('.preview-container');
 const clipSettingsPanel = document.getElementById('clipSettingsPanel');
 const btnRotLeft = document.getElementById('btnRotLeft');
 const btnRotRight = document.getElementById('btnRotRight');
-const btnRot180 = document.getElementById('btnRot180');
+const btnMirror = document.getElementById('btnMirror');
+const btnFlip = document.getElementById('btnFlip');
 const btnRotReset = document.getElementById('btnRotReset');
 
 const btnFit = document.getElementById('btnFit');
 const btnFill = document.getElementById('btnFill');
-const clipRatioSelect = document.getElementById('clipRatioSelect');
+const ratioBtns = document.querySelectorAll('.ratio-btn');
 
 const exportFormat = document.getElementById('exportFormat');
 const exportResolution = document.getElementById('exportResolution');
@@ -44,8 +45,23 @@ btnExport.addEventListener('click', handleExport);
 // Clip Settings Events
 btnRotLeft.addEventListener('click', () => updateActiveClip('rotate', (getValidRotation(-90))));
 btnRotRight.addEventListener('click', () => updateActiveClip('rotate', (getValidRotation(90))));
-btnRot180.addEventListener('click', () => updateActiveClip('rotate', (getValidRotation(180))));
-btnRotReset.addEventListener('click', () => updateActiveClip('rotate', 0));
+btnRotReset.addEventListener('click', () => {
+    updateActiveClip('rotate', 0);
+    updateActiveClip('mirror', false);
+    updateActiveClip('flip', false);
+});
+
+btnMirror.addEventListener('click', () => {
+    if (!activeVideoId) return;
+    const v = videos.find(v => v.id === activeVideoId);
+    updateActiveClip('mirror', !v.mirror);
+});
+
+btnFlip.addEventListener('click', () => {
+    if (!activeVideoId) return;
+    const v = videos.find(v => v.id === activeVideoId);
+    updateActiveClip('flip', !v.flip);
+});
 
 btnFit.addEventListener('click', () => {
     btnFit.classList.add('active');
@@ -58,7 +74,14 @@ btnFill.addEventListener('click', () => {
     updateActiveClip('fitFill', 'fill');
 });
 
-clipRatioSelect.addEventListener('change', (e) => updateActiveClip('ratio', e.target.value));
+ratioBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // visually update active state immediately
+        ratioBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateActiveClip('ratio', btn.dataset.ratio);
+    });
+});
 
 function getValidRotation(degAdd) {
     if(!activeVideoId) return 0;
@@ -90,6 +113,7 @@ async function handleUpload(e) {
             
             if (data.error) {
                 console.error(data.error);
+                alert(`Error uploading ${file.name}: ${data.error}`);
                 continue;
             }
 
@@ -102,6 +126,8 @@ async function handleUpload(e) {
                 url: data.url,
                 thumbnail: data.thumbnail,
                 rotate: 0,
+                mirror: false,
+                flip: false,
                 fitFill: 'fit',
                 ratio: 'Original'
             };
@@ -175,7 +201,17 @@ function selectVideo(id) {
     } else {
         btnFill.classList.add('active'); btnFit.classList.remove('active');
     }
-    clipRatioSelect.value = v.ratio || 'Original';
+    
+    ratioBtns.forEach(btn => {
+        if(btn.dataset.ratio === (v.ratio || 'Original')) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    if(v.mirror) btnMirror.classList.add('active'); else btnMirror.classList.remove('active');
+    if(v.flip) btnFlip.classList.add('active'); else btnFlip.classList.remove('active');
 
     // Update preview player
     placeholderPreview.style.display = 'none';
@@ -205,6 +241,8 @@ function applyPreviewTransforms() {
     
     // We simulate the ffmpeg transforms using CSS
     let transformStr = `rotate(${v.rotate}deg)`;
+    if (v.mirror) transformStr += ` scaleX(-1)`;
+    if (v.flip) transformStr += ` scaleY(-1)`;
     let objFit = v.fitFill === 'fit' ? 'contain' : 'cover';
 
     previewPlayer.style.transform = transformStr;

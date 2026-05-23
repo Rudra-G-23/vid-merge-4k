@@ -1,9 +1,3 @@
-Here is your complete prompt to build this app:
-
----
-
-**PROMPT:**
-
 Build a **local web application** for merging 100+ high-resolution 4K HEVC (H.265) videos on **Windows**, using **Python (FastAPI) backend** and **FFmpeg** for video processing.
 
 ---
