@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge - Premium Video Merger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Video List -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo"></div>
+                <h1>Merge</h1>
+            </div>
+            
+            <div class="upload-section">
+                <label for="videoUpload" class="upload-btn">
+                    <span>+ Add Videos</span>
+                    <input type="file" id="videoUpload" multiple accept=".mp4,.mov,.mkv" style="display: none;">
+                </label>
+            </div>
+
+            <div class="video-list-header">
+                <h2>Videos (<span id="videoCount">0</span>)</h2>
+                <small>Drag to reorder</small>
+            </div>
+
+            <div id="videoList" class="video-list">
+                <!-- Video items will be injected here by JS -->
+            </div>
+        </aside>
+
+        <!-- Main Area: Preview -->
+        <main class="main-content">
+            <div class="preview-container">
+                <div class="preview-wrapper" id="previewWrapper">
+                    <!-- Video player -->
+                    <video id="previewPlayer" controls style="display: none;"></video>
+                    <div id="placeholderPreview" class="placeholder-preview">
+                        <p>Upload a video to start editing</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Export Settings & Per-clip controls -->
+        <aside class="right-panel">
+            <div class="panel-section" id="clipSettingsPanel" style="display: none;">
+                <h3>Clip Settings</h3>
+                <div class="setting-group">
+                    <label>Rotation</label>
+                    <div class="btn-group">
+                        <button class="icon-btn" id="btnRotLeft" title="Rotate Left 90°">↶</button>
+                        <button class="icon-btn" id="btnRotRight" title="Rotate Right 90°">↷</button>
+                        <button class="icon-btn" id="btnRot180" title="Rotate 180°">180°</button>
+                        <button class="icon-btn" id="btnRotReset" title="Reset Rotation">X</button>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Scale Mode</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" id="btnFit" data-mode="fit">Fit</button>
+                        <button class="toggle-btn" id="btnFill" data-mode="fill">Fill</button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Aspect Ratio</label>
+                    <select id="clipRatioSelect" class="custom-select">
+                        <option value="Original">Original</option>
+                        <option value="16:9">16:9</option>
+                        <option value="9:16">9:16</option>
+                        <option value="1:1">1:1</option>
+                        <option value="4:5">4:5</option>
+                        <option value="2:3">2:3</option>
+                        <option value="3:4">3:4</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="panel-section export-section">
+                <h3>Export Settings</h3>
+                <div class="setting-group">
+                    <label>Format</label>
+                    <select id="exportFormat" class="custom-select">
+                        <option value="mp4">HEVC (H.265) .mp4</option>
+                        <option value="mov">ProRes .mov</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Resolution</label>
+                    <select id="exportResolution" class="custom-select">
+                        <option value="original">Original (Match First Video)</option>
+                        <option value="1080p">1080p</option>
+                        <option value="720p">720p</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>Quality (CRF) - <span id="crfValue">23</span></label>
+                    <input type="range" id="exportQuality" min="0" max="51" value="23" class="slider">
+                    <div class="slider-labels">
+                        <span>Lossless</span>
+                        <span>Compressed</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Output Folder</label>
+                    <div class="folder-picker-group">
+                        <input type="text" id="outputFolderPath" placeholder="Select a folder..." readonly>
+                        <button id="btnPickFolder" class="secondary-btn">Browse</button>
+                    </div>
+                </div>
+
+                <button id="btnExport" class="primary-btn pulse">Export Video</button>
+
+                <div id="exportProgressContainer" class="progress-container" style="display: none;">
+                    <div class="progress-info">
+                        <span id="progressStatus">Merging...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progressBarFill"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Loading overlay for uploads -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Uploading videos...</p>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
